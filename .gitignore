@@ -1,0 +1,41 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+env/
+venv/
+voiceapp/
+.venv/
+
+# OS files
+.DS_Store
+
+# Logs
+*.log
+
+# Model files (IMPORTANT 🚨)
+models/
+*.onnx
+*.bin
+*.pt
+*.tar.bz2
+
+# Sherpa / Vosk / Whisper models
+sherpa-onnx*
+vosk-model*
+whisper*
+
+# Large files
+*.zip
+*.tar
+*.gz
+
+# IDE files
+.vscode/
+.idea/
+
+# Temporary files
+*.tmp
