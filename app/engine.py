@@ -1,46 +1,74 @@
 import os
-import sherpa_onnx
+import logging
+
 import numpy as np
+import sherpa_onnx
+
+logger = logging.getLogger(__name__)
 
 
 class SpeechEngine:
+    """
+    Wraps a Sherpa-ONNX online transducer recogniser for low-latency,
+    streaming speech recognition.
+
+    on_live_text(str) is called whenever the partial hypothesis changes.
+    """
+
+    _MODEL_DIR = os.path.join("models", "sherpa")
+
     def __init__(self, on_live_text):
         self.on_live_text = on_live_text
 
-        model_dir = os.path.join("models", "sherpa")
-
         self.recognizer = sherpa_onnx.OnlineRecognizer.from_transducer(
-            encoder=os.path.join(model_dir, "encoder.onnx"),
-            decoder=os.path.join(model_dir, "decoder.onnx"),
-            joiner=os.path.join(model_dir, "joiner.onnx"),
-            tokens=os.path.join(model_dir, "tokens.txt"),
+            encoder=os.path.join(self._MODEL_DIR, "encoder.onnx"),
+            decoder=os.path.join(self._MODEL_DIR, "decoder.onnx"),
+            joiner=os.path.join(self._MODEL_DIR, "joiner.onnx"),
+            tokens=os.path.join(self._MODEL_DIR, "tokens.txt"),
             num_threads=2,
             sample_rate=16000,
             feature_dim=80,
         )
+        logger.info("Sherpa-ONNX recogniser loaded from '%s'.", self._MODEL_DIR)
 
+        self._stream = None
+        self._last_text = ""
         self.reset()
 
-    def reset(self):
-        self.stream = self.recognizer.create_stream()
-        self.last_text = ""
+    # ------------------------------------------------------------------
+    # Public API
+    # ------------------------------------------------------------------
 
-    def add_audio(self, audio):
-        if audio is None:
+    def reset(self) -> None:
+        """Discard current partial hypothesis and start a fresh stream."""
+        self._stream = self.recognizer.create_stream()
+        self._last_text = ""
+
+    def add_audio(self, audio: np.ndarray) -> None:
+        """
+        Feed a block of float32 PCM audio (16 kHz, mono) to the recogniser.
+        Calls on_live_text only when the hypothesis actually changes.
+        """
+        if audio is None or len(audio) == 0:
             return
 
-        audio = audio.astype(np.float32)
+        audio = np.asarray(audio, dtype=np.float32)
 
-        self.stream.accept_waveform(16000, audio)
+        try:
+            self._stream.accept_waveform(16000, audio)
 
-        while self.recognizer.is_ready(self.stream):
-            self.recognizer.decode_stream(self.stream)
+            while self.recognizer.is_ready(self._stream):
+                self.recognizer.decode_stream(self._stream)
 
-        result = self.recognizer.get_result(self.stream).strip()
-
-        if not result:
+            result = self.recognizer.get_result(self._stream).strip()
+        except Exception:
+            logger.exception("Error during streaming decode – resetting stream.")
+            self.reset()
             return
 
-        if result != self.last_text:
-            self.last_text = result
-            self.on_live_text(result)
+        if result and result != self._last_text:
+            self._last_text = result
+            try:
+                self.on_live_text(result)
+            except Exception:
+                logger.exception("on_live_text callback raised an exception.")
