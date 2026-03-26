@@ -6,7 +6,6 @@ Post-processing pipeline applied to Whisper's raw transcript:
   3. Apply sentence casing
 """
 
-import json
 import logging
 import os
 import re
@@ -21,10 +20,6 @@ class TextPostProcessor:
     def __init__(self):
         self.sym_spell = SymSpell(max_dictionary_edit_distance=2, prefix_length=7)
         self._load_dictionary()
-
-        # Load dynamic rules from an external JSON file instead of hardcoding python constants
-        self.marathi_corrections = {}
-        self._load_marathi_corrections()
 
     # ------------------------------------------------------------------
     # Public API
@@ -49,7 +44,6 @@ class TextPostProcessor:
             text = self._fast_unified_spell_pass(text)
         else:
             text = self._remove_adjacent_duplicates(text)
-            text = self._apply_marathi_corrections(text)
             
         text = self._sentence_case(text)
         return text
@@ -70,23 +64,7 @@ class TextPostProcessor:
             )
         logger.info("TextPostProcessor: SymSpell dictionary loaded.")
 
-    def _load_marathi_corrections(self) -> None:
-        """Dynamically load Marathi regex substitutions from external JSON file."""
-        config_path = "marathi_corrections.json"
-        
-        try:
-            if os.path.exists(config_path):
-                with open(config_path, "r", encoding="utf-8") as f:
-                    self.marathi_corrections = json.load(f)
-                logger.info("TextPostProcessor: Loaded external Marathi corrections config.")
-            else:
-                # Optionally generate a blank configuration file for the user if it's missing
-                self.marathi_corrections = {}
-                with open(config_path, "w", encoding="utf-8") as f:
-                    json.dump({}, f, indent=4, ensure_ascii=False)
-        except Exception as e:
-            logger.warning("Failed to load marathi_corrections.json: %s", e)
-            self.marathi_corrections = {}
+
 
     def _normalize_spaces(self, text: str) -> str:
         return re.sub(r"\s+", " ", text).strip()
@@ -99,11 +77,7 @@ class TextPostProcessor:
                 cleaned.append(w)
         return " ".join(cleaned)
 
-    def _apply_marathi_corrections(self, text: str) -> str:
-        """Fast regex replacements to fix known phonetic inaccuracies for Marathi."""
-        for pattern, replacement in self.marathi_corrections.items():
-            text = re.sub(pattern, replacement, text)
-        return text
+
 
     def _fast_unified_spell_pass(self, text: str) -> str:
         """

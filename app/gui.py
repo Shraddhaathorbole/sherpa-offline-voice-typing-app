@@ -144,15 +144,15 @@ class VoiceTypingGUI:
         btn_frame.pack(pady=(4, 2))
 
         # Language dropdown
-        self._language_var = tk.StringVar(value="en")
+        self._language_var = tk.StringVar(value="auto")
         lang_frame = tk.Frame(btn_frame, bg="#2f2f2f")
         lang_frame.pack(side="left", padx=(0, 10))
         
         tk.Label(lang_frame, text="Lang:", font=("Arial", 12, "bold"), fg="white", bg="#2f2f2f").pack(side="left")
         
         # We can use OptionMenu for nice native-looking dropdown
-        lang_dropdown = tk.OptionMenu(lang_frame, self._language_var, "en", "mr", "hi", command=self._on_language_change)
-        lang_dropdown.config(font=("Arial", 12), bg="#e9e9e9", width=3)
+        lang_dropdown = tk.OptionMenu(lang_frame, self._language_var, "auto", "en", "mr", "hi", command=self._on_language_change)
+        lang_dropdown.config(font=("Arial", 12), bg="#e9e9e9", width=4)
         lang_dropdown.pack(side="left", padx=4)
 
         btn_cfg = dict(width=10, font=("Arial", 12), fg="black", relief="raised", bd=2)
@@ -268,7 +268,7 @@ class VoiceTypingGUI:
     def _on_language_change(self, new_lang: str) -> None:
         """Dynamically update the UI preview label when dropdown is changed."""
         if self._running:
-            if new_lang in ["mr", "hi"]:
+            if new_lang in ["mr", "hi", "auto"]:
                 self._preview_var.set(f"(Live preview disabled for {new_lang.upper()})")
             else:
                 self._preview_var.set(f"…{self._live_text}" if self._live_text else "")
