@@ -20,10 +20,12 @@ def _configure_logging() -> None:
         datefmt="%H:%M:%S",
         stream=sys.stdout,
     )
+    logging.getLogger("faster_whisper").setLevel(logging.WARNING)
 
 def launch_app() -> None:
     _configure_logging()
-    root = tk.Tk()
+    import customtkinter as ctk
+    root = ctk.CTk()
     try:
         VoiceTypingGUI(root)
     except Exception:

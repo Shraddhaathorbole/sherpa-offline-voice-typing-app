@@ -25,7 +25,6 @@ class SpeechEngine:
             decoder=os.path.join(self._MODEL_DIR, "decoder.onnx"),
             joiner=os.path.join(self._MODEL_DIR, "joiner.onnx"),
             tokens=os.path.join(self._MODEL_DIR, "tokens.txt"),
-            num_threads=2,
             sample_rate=16000,
             feature_dim=80,
         )
